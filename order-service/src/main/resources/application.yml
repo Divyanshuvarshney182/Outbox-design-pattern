@@ -1,0 +1,69 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: order-service
+
+  # ── Database ────────────────────────────────────────────────────────────────
+  datasource:
+    url: jdbc:postgresql://localhost:5432/outbox_order_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 20
+
+  # ── Kafka ───────────────────────────────────────────────────────────────────
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: order-service-group
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+
+# ── Outbox scheduler ────────────────────────────────────────────────────────
+outbox:
+  publisher:
+    enabled: true
+    batch-size: 10
+    fixed-delay-ms: 5000      # poll every 5 s
+    initial-delay-ms: 10000   # wait 10 s on startup
+  cleanup:
+    cron: "0 0 3 * * *"       # 3 AM daily
+
+
+# ── Kafka topic names ────────────────────────────────────────────────────────
+kafka:
+  topics:
+    inventory-reserved: inventory.reserved
+
+# ── Actuator ─────────────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    com.example.order: DEBUG
+    org.springframework.kafka: INFO
